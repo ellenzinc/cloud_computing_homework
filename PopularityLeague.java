@@ -192,7 +192,9 @@ public class PopularityLeague extends Configured implements Tool {
 	   // Text[] pair = (Text[]) prevValue.toArray();
 	    Integer linkPrev= 0; //= Integer.parseInt(pair[0].toString());
 	    Integer countPrev = 0;// = Integer.parseInt(pair[1].toString());	    
-
+		
+	    TreeSet<Pair<Integer, Integer>> treeNew = new TreeSet<Pair<Integer, Integer>>();
+	
 	    int prev = 0;
 	    int interval = 1;
 	    int countAll = 0;
@@ -200,7 +202,7 @@ public class PopularityLeague extends Configured implements Tool {
 		IntWritable[] pair = (IntWritable[]) val.toArray();
 		Integer link = Integer.parseInt(pair[0].toString());
 	        Integer count = Integer.parseInt(pair[1].toString());	
-	        if (countAll > 0 && count == countPrev) {
+	        if (countAll > 0 && count.equals(countPrev)) {
 	 	    context.write(new IntWritable(link), new IntWritable(prev));
 	            interval ++;
 	        } else if (countAll == 0){
@@ -209,10 +211,12 @@ public class PopularityLeague extends Configured implements Tool {
 		    context.write(new IntWritable(link), new IntWritable(prev + interval));
 		    prev += interval;
 	            interval = 1;
-	        }
+	         }
 		linkPrev = link;
 		countPrev = count;
 		countAll++;
+		//context.write(new IntWritable(link), new IntWritable(count));
+	
 	    } 
 	}
 
@@ -239,8 +243,8 @@ public class PopularityLeague extends Configured implements Tool {
 
 	@Override
 	public int compareTo(Pair<A, B> o) {
-	    int cmp = o == null ? 1 : (this.first).compareTo(o.first);
-	    return cmp == 0 ? (this.second).compareTo(o.second) : cmp;
+	    int cmp = o == null ? 1 : (o.first).compareTo(this.first);
+	    return cmp == 0 ? (o.second).compareTo(this.second) : cmp;
 	}
 
 	@Override 

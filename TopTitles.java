@@ -130,8 +130,9 @@ public class TopTitles extends Configured implements Tool {
  	StringTokenizer tokenizer = new StringTokenizer(line, delimiters);
  	while (tokenizer.hasMoreTokens()) {
  	    String nextToken = tokenizer.nextToken();
- 	    if (!stopWords.contains(nextToken.trim().toLowerCase())) {
- 		context.write(new Text(nextToken), new IntWritable(1));
+ 	    String keyString = nextToken.trim().toLowerCase();
+	    if (!stopWords.contains(keyString)) {
+ 		context.write(new Text(keyString), new IntWritable(1));
 	    }
 	}
         }

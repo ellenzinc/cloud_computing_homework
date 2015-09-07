@@ -130,9 +130,11 @@ public class TopTitleStatistics extends Configured implements Tool {
 	    String line = value.toString();
  	    StringTokenizer tokenizer = new StringTokenizer(line, this.delimiters);
  	    while(tokenizer.hasMoreTokens()) {
- 		String nextToken = tokenizer.nextToken();
- 		if (!this.stopWords.contains(nextToken.trim().toLowerCase())) {
- 		    context.write(new Text(nextToken), new IntWritable(1));
+ 		
+		String nextToken = tokenizer.nextToken();
+ 		String kenString = nextToken.trim().toLowerCase();
+		if (!this.stopWords.contains(keyString)) {
+ 		    context.write(new Text(keyString), new IntWritable(1));
 		}
 	    }
         }
