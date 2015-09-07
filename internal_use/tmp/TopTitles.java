@@ -22,16 +22,16 @@ import org.apache.hadoop.util.ToolRunner;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.lang.Integer;
 import java.util.Arrays;
 import java.util.List;
 import java.util.StringTokenizer;
 import java.util.TreeSet;
 
-// Don't Change >>>
-public class TopTitleStatistics extends Configured implements Tool {
+// >>> Don't Change
+public class TopTitles extends Configured implements Tool {
+
     public static void main(String[] args) throws Exception {
-        int res = ToolRunner.run(new Configuration(), new TopTitleStatistics(), args);
+        int res = ToolRunner.run(new Configuration(), new TopTitles(), args);
         System.exit(res);
     }
 
@@ -52,18 +52,18 @@ public class TopTitleStatistics extends Configured implements Tool {
         FileInputFormat.setInputPaths(jobA, new Path(args[0]));
         FileOutputFormat.setOutputPath(jobA, tmpPath);
 
-        jobA.setJarByClass(TopTitleStatistics.class);
+        jobA.setJarByClass(TopTitles.class);
         jobA.waitForCompletion(true);
 
-        Job jobB = Job.getInstance(conf, "Top Titles Statistics");
+        Job jobB = Job.getInstance(conf, "Top Titles");
         jobB.setOutputKeyClass(Text.class);
         jobB.setOutputValueClass(IntWritable.class);
 
         jobB.setMapOutputKeyClass(NullWritable.class);
         jobB.setMapOutputValueClass(TextArrayWritable.class);
 
-        jobB.setMapperClass(TopTitlesStatMap.class);
-        jobB.setReducerClass(TopTitlesStatReduce.class);
+        jobB.setMapperClass(TopTitlesMap.class);
+        jobB.setReducerClass(TopTitlesReduce.class);
         jobB.setNumReduceTasks(1);
 
         FileInputFormat.setInputPaths(jobB, tmpPath);
@@ -72,7 +72,7 @@ public class TopTitleStatistics extends Configured implements Tool {
         jobB.setInputFormatClass(KeyValueTextInputFormat.class);
         jobB.setOutputFormatClass(TextOutputFormat.class);
 
-        jobB.setJarByClass(TopTitleStatistics.class);
+        jobB.setJarByClass(TopTitles.class);
         return jobB.waitForCompletion(true) ? 0 : 1;
     }
 
@@ -126,35 +126,31 @@ public class TopTitleStatistics extends Configured implements Tool {
 
         @Override
         public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
-            // TODO
-	    String line = value.toString();
- 	    StringTokenizer tokenizer = new StringTokenizer(line, this.delimiters);
- 	    while(tokenizer.hasMoreTokens()) {
- 		
-		String nextToken = tokenizer.nextToken();
- 		String keyString = nextToken.trim().toLowerCase();
-		if (!this.stopWords.contains(keyString)) {
- 		    context.write(new Text(keyString), new IntWritable(1));
-		}
+        String line = value.toString();
+ 	StringTokenizer tokenizer = new StringTokenizer(line, delimiters);
+ 	while (tokenizer.hasMoreTokens()) {
+ 	    String nextToken = tokenizer.nextToken();
+ 	    String keyString = nextToken.trim().toLowerCase();
+	    if (!stopWords.contains(keyString)) {
+ 		context.write(new Text(keyString), new IntWritable(1));
 	    }
+	}
         }
     }
 
     public static class TitleCountReduce extends Reducer<Text, IntWritable, Text, IntWritable> {
         @Override
         public void reduce(Text key, Iterable<IntWritable> values, Context context) throws IOException, InterruptedException {
-           //TODO
-	   int sum = 0;
-	   for (IntWritable val : values) {
-		sum += val.get();
-	   }
-	   context.write(key, new IntWritable(sum)); 
+            int sum = 0;
+ 	    for (IntWritable val: values) {
+ 		sum += val.get();
+  	    }
+ 	    context.write(key, new IntWritable(sum));
         }
     }
 
-    public static class TopTitlesStatMap extends Mapper<Text, Text, NullWritable, TextArrayWritable> {
-        //TODO
-	Integer N;
+    public static class TopTitlesMap extends Mapper<Text, Text, NullWritable, TextArrayWritable> {
+        Integer N;
         private TreeSet<Pair<Integer, String>> countToWordMap = new TreeSet<Pair<Integer, String>>();
 
         @Override
@@ -165,30 +161,28 @@ public class TopTitleStatistics extends Configured implements Tool {
 
         @Override
         public void map(Text key, Text value, Context context) throws IOException, InterruptedException {
-            //TODO
-	    Integer count = Integer.parseInt(value.toString());
-	    String word = key.toString();
-
-	    countToWordMap.add(new Pair<Integer, String>(count, word));
-
-	    if (countToWordMap.size() > 10) {
-		countToWordMap.remove(countToWordMap.first());
-	    }
+            Integer count = Integer.parseInt(value.toString());
+ 	    String word = key.toString();
+ 	    
+ 	    countToWordMap.add(new Pair<Integer, String> (count, word));
+	    if (countToWordMap.size() > N) {
+	  	countToWordMap.remove(countToWordMap.first());
+	    } 	    
         }
 
         @Override
         protected void cleanup(Context context) throws IOException, InterruptedException {
-            for (Pair<Integer, String> item : countToWordMap) {
-		String[] strings = {item.second, item.first.toString()};
- 		TextArrayWritable val = new TextArrayWritable(strings);
+            for (Pair<Integer, String> item: countToWordMap) {
+ 		String[] strings = {item.second, item.first.toString()};
+		TextArrayWritable val = new TextArrayWritable(strings);
  		context.write(NullWritable.get(), val);
 	    }
         }
     }
 
-    public static class TopTitlesStatReduce extends Reducer<NullWritable, TextArrayWritable, Text, IntWritable> {
+    public static class TopTitlesReduce extends Reducer<NullWritable, TextArrayWritable, Text, IntWritable> {
         Integer N;
-        private TreeSet<Pair<Integer,String>> countToWordMap = new TreeSet<Pair<Integer,String>>();
+        private TreeSet<Pair<Integer, String>> countToWordMap = new TreeSet<Pair<Integer, String>>();
 
         @Override
         protected void setup(Context context) throws IOException,InterruptedException {
@@ -198,49 +192,25 @@ public class TopTitleStatistics extends Configured implements Tool {
 
         @Override
         public void reduce(NullWritable key, Iterable<TextArrayWritable> values, Context context) throws IOException, InterruptedException {
-            Integer sum, mean, max, min, var;
-
-            for (TextArrayWritable val : values) {
-		Text[] pair = (Text[]) val.toArray();
+            for (TextArrayWritable val: values) {
+ 		Text[] pair = (Text[]) val.toArray();
  		String word = pair[0].toString();
-		Integer count = Integer.parseInt(pair[1].toString());
-		countToWordMap.add(new Pair<Integer, String> (count, word));
-
-		if (countToWordMap.size() > this.N) {
-		    countToWordMap.remove(countToWordMap.first());
+ 		Integer count = Integer.parseInt(pair[1].toString());
+ 		countToWordMap.add(new Pair<Integer, String>(count, word));
+  		if (countToWordMap.size() > this.N) {
+ 		    countToWordMap.remove(countToWordMap.first());
 		}
 	    }
-
-	    sum = 0;
-	    mean = 0;
-	    max = 0;
-	    min = Integer.MAX_VALUE;
-	    var = 0;
-	    for (Pair<Integer, String> item : countToWordMap) {
-		sum += item.first;
-		max = (item.first > max ? item.first : max);
-		min = (item.first > min ? min : item.first);
-		//for (Pair<Integer, String> item2 : countToWordMap) {
-		 //   if (item2.first < item.first) {
-		 //   	var += (item.first - item2.first) * (item.first - item2.first);
-		 //   }
-		//}
+ 	    for (Pair<Integer, String> item : countToWordMap) {
+ 		Text word = new Text(item.second);
+ 		IntWritable value = new IntWritable(item.first);
+ 		context.write(word, value);
 	    }
-	    mean = sum / this.N;
-	   // var = var / (this.N * this.N);
-	    for (Pair<Integer, String> item : countToWordMap) {
-	    	var += (item.first - mean) * (item.first - mean);
-	    } 
-	    var = var / this.N;
-
-            context.write(new Text("Mean"), new IntWritable(mean));
-            context.write(new Text("Sum"), new IntWritable(sum));
-            context.write(new Text("Min"), new IntWritable(min));
-            context.write(new Text("Max"), new IntWritable(max));
-            context.write(new Text("Var"), new IntWritable(var));
         }
     }
+
 }
+
 // >>> Don't Change
 class Pair<A extends Comparable<? super A>,
         B extends Comparable<? super B>>
