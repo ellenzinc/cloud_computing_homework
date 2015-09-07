@@ -5,6 +5,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.ArrayWritable;
 import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
@@ -17,6 +18,7 @@ import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
+import java.lang.Integer;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -38,9 +40,12 @@ public class PopularityLeague extends Configured implements Tool {
 	fs.delete(tmpPath, true);
 	
 	Job jobA = Job.getInstance(conf, "Link Count");
-	jobA.setOutputKeyClass(IntWritable.class);
-	jobA.setOutputValueClass(IntWritable.class);
+	jobA.setMapOutputKeyClass(IntWritable.class);
+	jobA.setMapOutputValueClass(IntWritable.class);
 	
+	jobA.setOutputKeyClass(IntWritable.class);
+	jobA.setOutputValueClass(IntWritable.class);	
+
 	jobA.setMapperClass(LinkCountMap.class);
 	jobA.setReducerClass(LinkCountReduce.class);
 	
@@ -51,18 +56,27 @@ public class PopularityLeague extends Configured implements Tool {
 	jobA.waitForCompletion(true);
 	
 	Job jobB = Job.getInstance(conf, "League Links");
-	jobB.setOutputKeyClass(IntWritable.class);
-	jobB.setOutputValueClass(IntWritable.class);
+	
+	//jobB.setMapOutputKeyClass(IntWritable.class);
+	//jobB.setMapOutput
+	//jobB.setOutputKeyClass(IntWritable.class);
+	//jobB.setOutputValueClass(IntWritable.class);
 	
 	jobB.setMapOutputKeyClass(NullWritable.class);
 	jobB.setMapOutputValueClass(IntArrayWritable.class);
+
+	jobB.setOutputKeyClass(IntWritable.class);
+	jobB.setOutputKeyClass(IntWritable.class);
 	
 	jobB.setMapperClass(LeagueLinksMap.class);
 	jobB.setReducerClass(LeagueLinksReduce.class);
 	jobB.setNumReduceTasks(1);	
+
+	FileInputFormat.setInputPaths(jobB, tmpPath);
+	FileOutputFormat.setOutputPath(jobB, new Path(args[1]));
 	
-	jobB.setInputFormatClass(KeyValueTextInputFormat.class);
-	jobB.setOutputFormatClass(TextOutputFormat.class);
+	//jobB.setInputFormatClass(KeyValueTextInputFormat.class);
+	//jobB.setOutputFormatClass(TextOutputFormat.class);
 	
 	jobB.setJarByClass(PopularityLeague.class);
 	return jobB.waitForCompletion(true) ? 0 : 1;
@@ -144,11 +158,11 @@ public class PopularityLeague extends Configured implements Tool {
 
     // TODO
     
-     public static class LeagueLinksMap extends Mapper<Text, Text, NullWritable, IntArrayWritable> {
+     public static class LeagueLinksMap extends Mapper<LongWritable, IntWritable, NullWritable, IntArrayWritable> {
      	private TreeSet<Pair<Integer, Integer>> countToLinkMap = new TreeSet<Pair<Integer, Integer>> ();
 	
 	@Override
-	public void map (Text key, Text value, Context context) throws IOException, InterruptedException {
+	public void map (LongWritable key, IntWritable value, Context context) throws IOException, InterruptedException {
 	    Integer count = Integer.parseInt(value.toString());
 	    Integer link = Integer.parseInt(key.toString());
 	
@@ -183,7 +197,7 @@ public class PopularityLeague extends Configured implements Tool {
 	    int interval = 1;
 	    int countAll = 0;
 	    for (IntArrayWritable val : values){
-		Text[] pair = (Text[]) val.toArray();
+		IntWritable[] pair = (IntWritable[]) val.toArray();
 		Integer link = Integer.parseInt(pair[0].toString());
 	        Integer count = Integer.parseInt(pair[1].toString());	
 	        if (countAll > 0 && count == countPrev) {
@@ -203,7 +217,9 @@ public class PopularityLeague extends Configured implements Tool {
     }
 
 
-    class Pair <A extends Comparable<? super A>, B extends Comparable<? super B>>
+}
+    class Pair <A extends Comparable<? super A>, 
+		B extends Comparable<? super B>>
 		implements Comparable<Pair<A, B>> {
 	public final A first;
 	public final B second;
@@ -215,9 +231,8 @@ public class PopularityLeague extends Configured implements Tool {
 
 	public static <A extends Comparable<? super A>,
 		 B extends Comparable<? super B>> 
-	Pair<A, B> of(A first, B second)
- 	{
-	    return new Pair<A, B> (first, second);
+	Pair<A, B> of(A first, B second) {
+	    return new Pair<A, B>(first, second);
 	}
 
 	@Override
@@ -241,7 +256,8 @@ public class PopularityLeague extends Configured implements Tool {
 	       return false;
 	   if (this == obj)
 		return true;
-	   return equal(first, ((Pair<?, ?>) obj).first) && equal(second, ((Pair<?, ?>) obj).second);
+	   return equal(first, ((Pair<?, ?>) obj).first) 
+			&& equal(second, ((Pair<?, ?>) obj).second);
 	}
 
 	private boolean equal(Object o1, Object o2) {
@@ -254,4 +270,3 @@ public class PopularityLeague extends Configured implements Tool {
 	    return "(" + first + ", " + second + ")";
 	}
     }
-}
