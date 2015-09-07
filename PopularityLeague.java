@@ -75,8 +75,8 @@ public class PopularityLeague extends Configured implements Tool {
 	FileInputFormat.setInputPaths(jobB, tmpPath);
 	FileOutputFormat.setOutputPath(jobB, new Path(args[1]));
 	
-	//jobB.setInputFormatClass(KeyValueTextInputFormat.class);
-	//jobB.setOutputFormatClass(TextOutputFormat.class);
+	jobB.setInputFormatClass(KeyValueTextInputFormat.class);
+	jobB.setOutputFormatClass(TextOutputFormat.class);
 	
 	jobB.setJarByClass(PopularityLeague.class);
 	return jobB.waitForCompletion(true) ? 0 : 1;
@@ -158,11 +158,11 @@ public class PopularityLeague extends Configured implements Tool {
 
     // TODO
     
-     public static class LeagueLinksMap extends Mapper<LongWritable, IntWritable, NullWritable, IntArrayWritable> {
+     public static class LeagueLinksMap extends Mapper<Text, Text, NullWritable, IntArrayWritable> {
      	private TreeSet<Pair<Integer, Integer>> countToLinkMap = new TreeSet<Pair<Integer, Integer>> ();
 	
 	@Override
-	public void map (LongWritable key, IntWritable value, Context context) throws IOException, InterruptedException {
+	public void map (Text key, Text value, Context context) throws IOException, InterruptedException {
 	    Integer count = Integer.parseInt(value.toString());
 	    Integer link = Integer.parseInt(key.toString());
 	
@@ -203,7 +203,9 @@ public class PopularityLeague extends Configured implements Tool {
 	        if (countAll > 0 && count == countPrev) {
 	 	    context.write(new IntWritable(link), new IntWritable(prev));
 	            interval ++;
-	        } else {
+	        } else if (countAll == 0){
+		    context.write(new IntWritable(link), new IntWritable(prev));
+		} else {
 		    context.write(new IntWritable(link), new IntWritable(prev + interval));
 		    prev += interval;
 	            interval = 1;
